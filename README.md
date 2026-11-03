@@ -11,9 +11,15 @@ An AI interviews you with simple one-line questions about what you do, your wins
 
 It never makes up achievements. Every fact comes from you, and any creative line is marked ⚠️ so you can keep or cut it.
 
-## Use it in any AI chat (easiest)
+## Easiest: use the web page
 
-Open [PROMPT.md](PROMPT.md), copy the prompt into ChatGPT, Gemini or Claude, and answer the questions. That's it.
+**→ [gitpullsaad.github.io/late-start-linkedin](https://gitpullsaad.github.io/late-start-linkedin/)**
+
+Answer 13 short questions and get a prompt built around you, or a Claude skill to download. Everything runs in your browser, and nothing is sent anywhere.
+
+## Or use the generic prompt
+
+Open [PROMPT.md](PROMPT.md), copy the prompt into ChatGPT, Gemini or Claude, and answer the questions there.
 
 ## Use it as a Claude skill
 

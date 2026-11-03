@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Late Start</title>
+<meta name="description" content="Answer a few one-line questions and get your own AI prompt or Claude skill to start posting on LinkedIn.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #F7F2E8; --card: #FFFDF8; --ink: #22262B; --muted: #5E6670;
+    --accent: #A8C7DA; --accent-ink: #1F4A63; --line: #E4DCCB; --focus: #4E86A6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #171A1D; --card: #20252A; --ink: #ECE7DD; --muted: #A3ABB4;
+      --accent: #3D6A84; --accent-ink: #D7E9F3; --line: #323A42; --focus: #A8C7DA;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #171A1D; --card: #20252A; --ink: #ECE7DD; --muted: #A3ABB4;
+    --accent: #3D6A84; --accent-ink: #D7E9F3; --line: #323A42; --focus: #A8C7DA;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, system-ui, sans-serif; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1, h2 { font-family: Fraunces, Georgia, serif; font-weight: 600; letter-spacing: -0.01em; }
+  h1 { font-size: clamp(2rem, 6vw, 2.8rem); line-height: 1.1; margin: 0 0 12px; }
+  h2 { font-size: 1.5rem; line-height: 1.25; margin: 0 0 8px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 24px; }
+  .bar { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin: 0 0 20px; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--focus); transition: width .25s; }
+  .step-count { font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+  input[type=text], textarea {
+    width: 100%; font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-top: 8px;
+  }
+  textarea { min-height: 120px; resize: vertical; }
+  input:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .hint { font-size: .9rem; color: var(--muted); margin-top: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 99px; padding: 8px 14px; font: inherit; cursor: pointer; }
+  .chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 24px; }
+  .btn { font: 600 1rem Inter, sans-serif; border-radius: 10px; padding: 12px 20px; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+  .btn.primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .tabs { display: flex; gap: 8px; margin: 16px 0 12px; flex-wrap: wrap; }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px; font: .85rem/1.5 ui-monospace, Consolas, monospace; max-height: 360px; overflow: auto; margin: 0; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  ol.how { padding-left: 20px; margin: 8px 0 0; }
+  ol.how li { margin-bottom: 4px; }
+  footer { margin-top: 28px; font-size: .9rem; color: var(--muted); text-align: center; }
+  a { color: var(--focus); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section id="intro">
+    <h1>Start posting on LinkedIn. Today, not "someday".</h1>
+    <p class="muted">Answer 13 short questions. You'll get your own AI prompt, or a Claude skill, built around your work and your wins. It then plans your first month of posts and writes the first one.</p>
+    <p class="muted">Takes about 5 minutes. Your answers stay in your browser and are never sent anywhere.</p>
+    <div class="nav"><span></span><button class="btn primary" id="start">Let's begin</button></div>
+  </section>
+
+  <section id="quiz" class="card hidden" aria-live="polite">
+    <div class="bar"><i id="progress"></i></div>
+    <div class="step-count" id="count"></div>
+    <h2 id="q"></h2>
+    <div id="field"></div>
+    <div class="hint" id="hint"></div>
+    <div class="nav">
+      <button class="btn" id="back">Back</button>
+      <button class="btn primary" id="next">Next</button>
+    </div>
+  </section>
+
+  <section id="result" class="card hidden">
+    <h2>Your starter kit is ready</h2>
+    <p class="muted">Pick how you want to use it.</p>
+    <div class="tabs">
+      <button class="chip" aria-pressed="true" data-tab="prompt">Any AI chat</button>
+      <button class="chip" aria-pressed="false" data-tab="skill">Claude skill</button>
+    </div>
+    <div id="tab-prompt">
+      <ol class="how">
+        <li>Copy the prompt.</li>
+        <li>Paste it into ChatGPT, Gemini or Claude, and send it.</li>
+        <li>It will plan your month and write your first post.</li>
+      </ol>
+      <div class="row"><button class="btn primary" id="copy">Copy prompt</button></div>
+      <p></p>
+      <pre id="prompt-out"></pre>
+    </div>
+    <div id="tab-skill" class="hidden">
+      <ol class="how">
+        <li>Download the zip.</li>
+        <li>In Claude, go to Settings → Capabilities → Skills, and upload it.</li>
+        <li>Start a chat and say: "Plan my LinkedIn posts."</li>
+      </ol>
+      <p class="hint">In Claude Code, unzip the file into <code>~/.claude/skills/</code> instead.</p>
+      <div class="row">
+        <button class="btn primary" id="zip">Download skill (.zip)</button>
+        <button class="btn" id="md">Download SKILL.md</button>
+      </div>
+      <p></p>
+      <pre id="skill-out"></pre>
+    </div>
+    <div class="nav"><button class="btn" id="edit">Edit answers</button><button class="btn" id="restart">Start over</button></div>
+  </section>
+
+  <footer>
+    Made by <a href="https://www.linkedin.com/in/gitpullsaad/">Saad Shahzad</a> as part of <em>Late Start</em>.
+    <a href="https://github.com/gitpullsaad/late-start-linkedin">Source on GitHub</a>.
+  </footer>
+</main>
+
+<script>
+const QUESTIONS = [
+  { id: "name", q: "What's your name?", type: "text", ph: "e.g. Ayesha Khan", req: true },
+  { id: "role", q: "What do you do, in one line?", type: "text", ph: "e.g. Frontend developer at a fintech startup", req: true },
+  { id: "place", q: "Where are you based?", type: "text", ph: "e.g. Lahore, Pakistan" },
+  { id: "goal", q: "What do you want LinkedIn to do for you?", type: "chips", multi: true,
+    opts: ["Get a job", "Win clients", "Grow my network", "Build credibility", "Share what I know", "Grow my business"] },
+  { id: "audience", q: "Who do you want to reach?", type: "text", ph: "e.g. Recruiters at remote-first companies, and junior developers" },
+  { id: "wins", q: "List your wins, even small ones.", type: "area", ph: "One per line, e.g.\nWon 1st place at a university hackathon (2022)\nPromoted to team lead in 2024\nSpoke at a local tech meetup",
+    hint: "Awards, events, talks, projects, promotions, certificates, volunteering, hard things you got through. One line each.", req: true },
+  { id: "story", q: "Which win has a story you still remember clearly?", type: "area", ph: "What happened, in 2–3 lines.", hint: "This often becomes one of your strongest posts." },
+  { id: "teach", q: "What could you teach in five minutes, without preparing?", type: "area", ph: "Up to 3 topics, one per line" },
+  { id: "media", q: "What photos, videos or certificates do you have?", type: "area", ph: "One per line, e.g.\nMe on stage at the 2023 meetup\nTeam photo from the hackathon\nCertificate from the AWS course" },
+  { id: "private", q: "Is there anything you can't mention?", type: "text", ph: "e.g. My employer's name, client names, internal numbers", hint: "This stays out of every post." },
+  { id: "freq", q: "How often can you realistically post?", type: "chips", opts: ["Once a week", "Twice a week", "Three times a week"] },
+  { id: "tone", q: "How should your posts sound?", type: "chips", opts: ["Calm and honest", "Warm and friendly", "Bold and direct", "Story-driven"] },
+  { id: "why", q: "Why haven't you started yet? (Optional)", type: "text", ph: "e.g. I kept thinking I had nothing worth sharing", hint: "Your honest answer often makes the best first post." }
+];
+
+const STORE = "late-start-answers";
+let answers = {};
+try { answers = JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) {}
+let i = 0;
+const $ = id => document.getElementById(id);
+const save = () => { try { localStorage.setItem(STORE, JSON.stringify(answers)); } catch (e) {} };
+
+function render() {
+  const Q = QUESTIONS[i];
+  $("count").textContent = `Question ${i + 1} of ${QUESTIONS.length}`;
+  $("progress").style.width = `${(i / QUESTIONS.length) * 100}%`;
+  $("q").textContent = Q.q;
+  $("hint").textContent = Q.hint || (Q.req ? "" : "Optional. You can skip this one.");
+  const f = $("field");
+  f.innerHTML = "";
+  if (Q.type === "chips") {
+    const wrap = document.createElement("div");
+    wrap.className = "chips";
+    const cur = answers[Q.id] || [];
+    Q.opts.forEach(o => {
+      const b = document.createElement("button");
+      b.className = "chip"; b.type = "button"; b.textContent = o;
+      b.setAttribute("aria-pressed", cur.includes(o));
+      b.onclick = () => {
+        let v = answers[Q.id] || [];
+        if (Q.multi) v = v.includes(o) ? v.filter(x => x !== o) : [...v, o];
+        else v = [o];
+        answers[Q.id] = v; save(); render();
+      };
+      wrap.appendChild(b);
+    });
+    f.appendChild(wrap);
+  } else {
+    const el = document.createElement(Q.type === "area" ? "textarea" : "input");
+    if (Q.type !== "area") el.type = "text";
+    el.placeholder = Q.ph || "";
+    el.value = answers[Q.id] || "";
+    el.setAttribute("aria-label", Q.q);
+    el.oninput = () => { answers[Q.id] = el.value; save(); updateNext(); };
+    el.onkeydown = e => { if (e.key === "Enter" && Q.type !== "area") { e.preventDefault(); $("next").click(); } };
+    f.appendChild(el);
+    setTimeout(() => el.focus(), 0);
+  }
+  $("back").disabled = i === 0;
+  $("next").textContent = i === QUESTIONS.length - 1 ? "Build my kit" : "Next";
+  updateNext();
+}
+
+function filled(Q) {
+  const v = answers[Q.id];
+  return Array.isArray(v) ? v.length > 0 : !!(v && v.trim());
+}
+function updateNext() { $("next").disabled = QUESTIONS[i].req && !filled(QUESTIONS[i]); }
+
+const val = id => {
+  const v = answers[id];
+  if (Array.isArray(v)) return v.join(", ");
+  return (v || "").trim();
+};
+const lines = id => val(id).split("\n").map(s => s.trim()).filter(Boolean);
+const list = (id, empty) => { const l = lines(id); return l.length ? l.map(s => `- ${s}`).join("\n") : `- ${empty}`; };
+
+function profile() {
+  return `## About me
+- Name: ${val("name")}
+- What I do: ${val("role")}
+- Based in: ${val("place") || "not given"}
+- Goal on LinkedIn: ${val("goal") || "not given"}
+- Audience: ${val("audience") || "not given"}
+- Posting frequency: ${val("freq") || "Twice a week"}
+- Tone: ${val("tone") || "Calm and honest"}
+- Never mention: ${val("private") || "nothing specified"}
+- Why I haven't started: ${val("why") || "not given"}
+
+## My wins (all true)
+${list("wins", "none listed")}
+
+## The story I remember best
+${val("story") || "not given"}
+
+## Topics I can teach
+${list("teach", "none listed")}
+
+## Media I have
+${list("media", "none listed")}`;
+}
+
+const RULES = `## Rules
+- Never invent facts. Every achievement, number, title and date must come from the profile above. You may add colour (a feeling, a scene, a lesson), but mark each creative line with ⚠️ so I can keep or cut it.
+- Keep out everything listed under "Never mention".
+- No corporate filler: "excited to announce", "humbled", "game-changer", "in today's fast-paced world", "delve".
+- The hook must work in the first ~140 characters. End each post with one specific question, not "Thoughts?".
+- At most 3 hashtags and 1 emoji per post.
+- Write each paragraph as a single line, with no line breaks inside it and a blank line between paragraphs. Only lists, the signature and hashtags get their own lines.
+- Old photos are fine: say when it happened, then what it means now.`;
+
+const OUTPUT = `## What I need from you
+A) A short style guide (5–7 rules) that fits my tone, including a series name and a signature line that ends every post, like "Late Start #01".
+B) A 4-week calendar table (date, type, topic, media) at my posting frequency, alternating story posts (from my wins) with knowledge posts (from my topics), and using my real media where it fits. Start from today.
+C) My first post written in full: why I'm starting now, plus 2 alternative hooks, the media to attach and a suggested first comment.
+D) A short checklist to run before posting.
+
+If something important is missing, ask me at most 3 short questions first. Otherwise, start.`;
+
+function buildPrompt() {
+  return `You are my LinkedIn coach. I want to start posting on LinkedIn, and I've put it off long enough. Here is everything you need about me.
+
+${profile()}
+
+${RULES}
+
+${OUTPUT}`;
+}
+
+function slug() {
+  return (val("name").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "me");
+}
+
+function buildSkill() {
+  return `---
+name: linkedin-coach-${slug()}
+description: Personal LinkedIn coach for ${val("name")}. Plans posts, writes them in their voice from their real wins, and keeps a consistent style. Use when ${val("name")} asks for a LinkedIn post, a content plan, a caption, or feedback on a draft.
+---
+
+# LinkedIn coach for ${val("name")}
+
+${profile()}
+
+${RULES}
+
+## First time
+${OUTPUT.replace("## What I need from you\n", "")}
+
+## Every time after that
+- Write the next post in the calendar, in the agreed style and signature.
+- If I share a new win or photo, add it to the plan and use it.
+- Give me the post, 2 alternative hooks, the media to attach and a first comment.
+`;
+}
+
+function download(name, blob) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function showResult() {
+  $("quiz").classList.add("hidden");
+  $("result").classList.remove("hidden");
+  $("prompt-out").textContent = buildPrompt();
+  $("skill-out").textContent = buildSkill();
+  window.scrollTo(0, 0);
+}
+
+$("start").onclick = () => { $("intro").classList.add("hidden"); $("quiz").classList.remove("hidden"); render(); };
+$("back").onclick = () => { if (i > 0) { i--; render(); } };
+$("next").onclick = () => { if (i < QUESTIONS.length - 1) { i++; render(); } else showResult(); };
+$("edit").onclick = () => { $("result").classList.add("hidden"); $("quiz").classList.remove("hidden"); i = 0; render(); };
+$("restart").onclick = () => { answers = {}; save(); i = 0; $("result").classList.add("hidden"); $("quiz").classList.remove("hidden"); render(); };
+document.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => {
+  document.querySelectorAll("[data-tab]").forEach(x => x.setAttribute("aria-pressed", x === b));
+  $("tab-prompt").classList.toggle("hidden", b.dataset.tab !== "prompt");
+  $("tab-skill").classList.toggle("hidden", b.dataset.tab !== "skill");
+});
+$("copy").onclick = async () => {
+  try { await navigator.clipboard.writeText(buildPrompt()); }
+  catch (e) { const r = document.createRange(); r.selectNodeContents($("prompt-out")); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand("copy"); }
+  $("copy").textContent = "Copied ✓"; setTimeout(() => $("copy").textContent = "Copy prompt", 2000);
+};
+$("md").onclick = () => download("SKILL.md", new Blob([buildSkill()], { type: "text/markdown" }));
+$("zip").onclick = async () => {
+  if (!window.JSZip) { $("md").click(); return; }
+  const z = new JSZip();
+  z.folder(`linkedin-coach-${slug()}`).file("SKILL.md", buildSkill());
+  download(`linkedin-coach-${slug()}.zip`, await z.generateAsync({ type: "blob" }));
+};
+</script>
+</body>
+</html>
